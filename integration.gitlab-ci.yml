@@ -43,7 +43,7 @@ stages:
 checkout:
   stage: checkout
   tags:
-    - runner
+    - nest-run
   script:
     - echo "Checking out the repository"
     - git rev-parse --short HEAD > commit_hash.txt
@@ -68,7 +68,7 @@ install_dependencies:
     - npm install
     - ls -la
   tags:
-    - runner
+    - nest-run
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -87,7 +87,7 @@ build:
   script:
     - npm run build     # Exécutez le script de build
   tags:
-    - runner
+    - nest-run
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -109,7 +109,7 @@ unit_tests:
     reports:
       junit: test-results.xml
   tags:
-    - runner
+    - nest-run
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -177,7 +177,7 @@ quality_gate:
 package:
   stage: package
   tags:
-    - runner
+    - nest-run
   script:
     - echo "Cleaning up old ZIP files..."
     - rm -f artifact-*.zip
@@ -206,7 +206,7 @@ package:
 upload:
   stage: upload
   tags:
-    - runner
+    - nest-run
   script:
     - echo "Determining commit ID..."
     - COMMIT_ID=$(git rev-parse --short HEAD)
