@@ -79,26 +79,31 @@ install_dependencies:
         $SLACK_WEBHOOK_URL
 
 
-build:
-    stage: build
+stages:
+  - build
 
-    script:
-        - npm run build
-    tags:
-        - runner
-    after_script:
+build:
+  stage: build
+  script:
+    - npm install -g @nestjs/cli   # Install NestJS CLI globally
+    - npm install                  # Install project dependencies
+    - npm run build                # Run the build script
+  tags:
+    - runner
+  after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="install_dependencies succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="build succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="install_dependencies failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="build failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-    artifacts:
-        paths:
-            - dist/
+  artifacts:
+    paths:
+      - dist/
+
 
 
 unit_tests:
