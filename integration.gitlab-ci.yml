@@ -60,11 +60,11 @@ checkout:
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-
+image: node:18
 
 install_dependencies:
   stage: install
-  script: 
+  script:
     - npm install
   artifacts:
     expire_in: 1h
@@ -109,7 +109,6 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
 
       
 unit_tests:
