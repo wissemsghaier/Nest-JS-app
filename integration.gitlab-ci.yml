@@ -64,9 +64,15 @@ checkout:
 
 install_dependencies:
   stage: install
-  image: node:18.20.4  # Use Node.js 18 Docker image
-  script:
+  script: 
     - npm install
+  artifacts:
+expire_in: 1h
+paths:
+  - node_modules/
+cache:
+  paths:
+    - node_modules/
   tags:
     - nest-run
   after_script:
@@ -82,9 +88,15 @@ install_dependencies:
         
 build:
   stage: build
-  image: node:18.20.4  # Use Node.js 18 image
+  variables:
+  BUILD_CONFIG: 'production'
+  dependencies:
+    - install
   script:
-    - echo "build"  # Ensure build script in package.json uses local nest CLI
+  - npm run build
+  artifacts:
+    paths:
+      - dist/
   tags:
     - nest-run
   after_script:
