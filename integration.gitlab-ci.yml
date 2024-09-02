@@ -1,5 +1,3 @@
-image: node:16  # Utiliser Node.js 18.x
-
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
@@ -68,6 +66,7 @@ install_dependencies:
   stage: install
   script:
     - npm install
+    - ls -la
   tags:
     - runner
   after_script:
@@ -86,9 +85,6 @@ install_dependencies:
 build:
   stage: build
   script:
-    - node --version    # Vérifiez la version de Node.js
-    - npm --version     # Vérifiez la version de npm
-    - npm install
     - npm run build     # Exécutez le script de build
   tags:
     - runner
@@ -102,9 +98,7 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-  artifacts:
-    paths:
-      - dist/
+
 
       
 unit_tests:
