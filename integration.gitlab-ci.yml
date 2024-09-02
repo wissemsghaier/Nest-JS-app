@@ -64,7 +64,9 @@ checkout:
 
 install_dependencies:
   stage: install
+  image: node:18.20.4  # Use a Node.js Docker image that matches your desired version
   script:
+    - npm install -g npm@10.7.0  # Install the specific version of npm
     - npm cache clean --force
     - npm config set fetch-retry-mintimeout 20000
     - npm config set fetch-retry-maxtimeout 120000
@@ -83,7 +85,6 @@ install_dependencies:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
 
         
 build:
