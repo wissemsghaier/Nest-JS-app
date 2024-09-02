@@ -82,7 +82,7 @@ build:
   stage: build
   script:
     - npm install                  # Install project dependencies
-    - npx nest build              # Run the build script
+    - npm run build              # Run the build script
   tags:
     - runner
   after_script:
