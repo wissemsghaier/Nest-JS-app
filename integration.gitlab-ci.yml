@@ -67,12 +67,12 @@ install_dependencies:
   script: 
     - npm install
   artifacts:
-expire_in: 1h
-paths:
-  - node_modules/
-cache:
-  paths:
-    - node_modules/
+    expire_in: 1h
+    paths:
+      - node_modules/
+  cache:
+    paths:
+      - node_modules/
   tags:
     - nest-run
   after_script:
@@ -89,11 +89,11 @@ cache:
 build:
   stage: build
   variables:
-  BUILD_CONFIG: 'production'
+    BUILD_CONFIG: 'production'
   dependencies:
-    - install
+    - install_dependencies
   script:
-  - npm run build
+    - npm run build
   artifacts:
     paths:
       - dist/
@@ -109,6 +109,7 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
 
       
 unit_tests:
