@@ -23,11 +23,6 @@ cache:
   paths:
     - node_modules/
 
-before_script:
-  - echo "Determining commit ID..."
-  - export COMMIT_ID=$(git rev-parse --short HEAD)
-  - export ZIP_FILE_NAME="${ARTIFACT_ID}-${COMMIT_ID}.zip"
-
 stages:
   - checkout
   - install
