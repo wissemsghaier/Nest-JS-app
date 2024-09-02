@@ -15,8 +15,8 @@ variables:
 
 default:
   image: node:${NODE_VERSION}-alpine
-  before_script:
-    - npm install -g npm@${NPM_VERSION}
+  # before_script:
+  #   - npm install -g npm@${NPM_VERSION}
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
