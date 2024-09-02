@@ -1,4 +1,4 @@
-image: node:18  # Utiliser Node.js 18.x
+image: node:16  # Utiliser Node.js 18.x
 
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
