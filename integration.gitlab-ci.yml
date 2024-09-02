@@ -65,6 +65,7 @@ checkout:
 install_dependencies:
   stage: install
   script:
+    - rm -rf node_modules
     - npm update
     - ls -la
   tags:
