@@ -80,8 +80,10 @@ install_dependencies:
 build:
   stage: build
   script:
-    - npm install                  # Install project dependencies
-    - npm run build                # Run the build script
+    - node --version    # Check Node.js version
+    - npm --version     # Check npm version
+    - npm install       # Install project dependencies
+    - npm run build     # Run the build script
   tags:
     - runner
   after_script:
@@ -94,9 +96,9 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-  artifacts:
-    paths:
-      - dist/
+    artifacts:
+      paths:
+        - dist/
 
 
 
