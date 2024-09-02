@@ -62,14 +62,6 @@ checkout:
 install_dependencies:
   stage: install
   script:
-    - sudo apt-get update
-    - sudo apt-get install -y curl
-    - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-    - export NVM_DIR="$HOME/.nvm"
-    - [ -s "$NVM_DIR/nvm.sh" ] 
-    - \. "$NVM_DIR/nvm.sh"
-    - nvm install 18
-    - nvm use 18
     - npm install
   tags:
     - runner
