@@ -78,10 +78,6 @@ install_dependencies:
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-
-stages:
-  - build
-
 build:
   stage: build
   script:
