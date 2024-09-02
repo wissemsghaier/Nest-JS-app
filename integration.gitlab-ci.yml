@@ -62,12 +62,11 @@ checkout:
 install_dependencies:
   stage: install
   script:
-    - apt-get update
-    - apt-get install -y curl
+    - sudo apt-get update
+    - sudo apt-get install -y curl
     - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
     - export NVM_DIR="$HOME/.nvm"
-    - [ -s "$NVM_DIR/nvm.sh" ] 
-    -  \. "$NVM_DIR/nvm.sh"
+    - [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
     - nvm install 18
     - nvm use 18
     - npm install
@@ -105,7 +104,6 @@ build:
   artifacts:
     paths:
       - dist/
-
 
 unit_tests:
   stage: test
