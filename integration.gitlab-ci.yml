@@ -64,9 +64,9 @@ checkout:
 
 install_dependencies:
   stage: install
-  image: node:18.20.4  # Use Node.js 18 image
+  image: node:18.20.4  # Use Node.js 18 Docker image
   script:
-    - npm install -g npm@10.7.0  # Upgrade npm globally
+    - npm install -g npm@10.7.0
     - npm cache clean --force
     - npm config set fetch-retry-mintimeout 20000
     - npm config set fetch-retry-maxtimeout 120000
