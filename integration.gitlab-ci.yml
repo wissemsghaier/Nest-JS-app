@@ -1,4 +1,4 @@
-image: node:18  
+image: ubuntu:22.04
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
@@ -18,6 +18,16 @@ before_script:
   - echo "Determining commit ID..."
   - export COMMIT_ID=$(git rev-parse --short HEAD)
   - export ZIP_FILE_NAME="${ARTIFACT_ID}-${COMMIT_ID}.zip"
+
+  - apt-get update && apt-get install -y curl
+  - curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+  - export NVM_DIR="$HOME/.nvm"
+  - [ -s "$NVM_DIR/nvm.sh" ] 
+  -  \. "$NVM_DIR/nvm.sh"
+  - nvm install 18
+  - nvm use 18
+  - node --version
+  - npm --version
 
 
 stages:
