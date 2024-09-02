@@ -1,26 +1,23 @@
 variables:
-  NODE_VERSION: "18"  # Adjust to the Node.js version you're using
-  NPM_VERSION: "9"    # Adjust to the npm version you're using
-
-
+  NODE_VERSION: "18"
+  NPM_VERSION: "9"
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
   SONARQUBE_PROJECT_KEY: 'nest-js-project'
   SONARQUBE_PROJECT_NAME: 'nest-js-project'
-
   NEXUS_CREDENTIALS_ID: "nexus-jenkins"
   NEXUS_URL: "https://nexus.u-cloudsolutions.xyz"
   NEXUS_REPOSITORY: "student-repository"
   GROUP_ID: "com.artificial.Nest-JS"
   ARTIFACT_ID: "artifact"
   ZIP_FILE_NAME: '${ARTIFACT_ID}-${COMMIT_ID}.zip'
-  COMMIT_ID: $(git rev-parse --short HEAD)
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
 
 default:
   image: node:${NODE_VERSION}-alpine
   before_script:
     - npm install -g npm@${NPM_VERSION}
+
 cache:
   key: ${CI_COMMIT_REF_SLUG}
   paths:
@@ -30,10 +27,6 @@ before_script:
   - echo "Determining commit ID..."
   - export COMMIT_ID=$(git rev-parse --short HEAD)
   - export ZIP_FILE_NAME="${ARTIFACT_ID}-${COMMIT_ID}.zip"
-
-
-
-
 
 stages:
   - checkout
@@ -52,7 +45,6 @@ stages:
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-
 checkout:
   stage: checkout
   tags:
@@ -65,14 +57,13 @@ checkout:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="checkout succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Checkout succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="checkout failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Checkout failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
 
 install_dependencies:
   stage: install
@@ -86,14 +77,14 @@ install_dependencies:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="install_dependencies succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Install dependencies succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="install_dependencies failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Install dependencies failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-        
+
 build:
   stage: build
   script:
@@ -106,15 +97,14 @@ build:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="build succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Build succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="build failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Build failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-      
 unit_tests:
   stage: test
   script:
@@ -129,120 +119,88 @@ unit_tests:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="run_unit_tests succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Unit tests succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="run_unit_tests failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Unit tests failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-
-quality:
+code_quality:
   stage: quality
-  tags:
-    - sonar
   script:
-    - echo "Running code quality check via SonarQube"
-    - sonar-scanner -X -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} -Dsonar.sources=. -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN} -Dsonar.exclusions=vendor/**
+    - sonar-scanner \
+        -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY \
+        -Dsonar.projectName=$SONARQUBE_PROJECT_NAME \
+        -Dsonar.host.url=$SONARQUBE_URL \
+        -Dsonar.login=$SONARQUBE_TOKEN
+  tags:
+    - nest-run
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="quality succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Code quality analysis succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="quality failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Code quality analysis failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-  
-
 
 quality_gate:
   stage: quality_gate
-  tags:
-    - sonar
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache curl
   script:
-    - echo "Waiting for SonarQube quality gate..."
-    - sleep 60
-    - echo "Checking SonarQube quality gate status"
-    - |
-      RESPONSE=$(curl -s -u ${SONARQUBE_TOKEN}: \
-        "${SONARQUBE_URL}/api/qualitygates/project_status?projectKey=${SONARQUBE_PROJECT_KEY}")
-      if echo "$RESPONSE" | grep -q '"status":"OK"'; then
-        echo "Quality gate passed"
-      else
-        echo "Quality gate failed"
-        exit 1
-      fi
-  after_script:
-    - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="quality_gate succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="quality_gate failed in pipeline $CI_PIPELINE_ID"
-      fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
-        $SLACK_WEBHOOK_URL
-
-
-package:
-  stage: package
+    - sonar-quality-gate-check \
+        -Dsonar.projectKey=$SONARQUBE_PROJECT_KEY \
+        -Dsonar.host.url=$SONARQUBE_URL \
+        -Dsonar.login=$SONARQUBE_TOKEN
   tags:
     - nest-run
-  script:
-    - echo "Cleaning up old ZIP files..."
-    - rm -f artifact-*.zip
-    - echo "Packaging project..."
-    - COMMIT_ID=$(git rev-parse --short HEAD)
-    - ZIP_FILE_NAME="artifact-${COMMIT_ID}.zip"
-    - echo "Packaging project as ${ZIP_FILE_NAME}..."
-    - zip -r ${ZIP_FILE_NAME} .
-    - ls -l ${ZIP_FILE_NAME}
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="package succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Quality gate check passed in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="package failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Quality gate check failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
+package_artifact:
+  stage: package
+  script:
+    - zip -r $ZIP_FILE_NAME dist/
   artifacts:
     paths:
-      - artifact-*.zip
-
-
-upload:
-  stage: upload
+      - $ZIP_FILE_NAME
   tags:
     - nest-run
-  script:
-    - echo "Determining commit ID..."
-    - COMMIT_ID=$(git rev-parse --short HEAD)
-    - ZIP_FILE_NAME="artifact-${COMMIT_ID}.zip"
-    - echo "Uploading ${ZIP_FILE_NAME} to Nexus..."
-    - UPLOAD_URL="${NEXUS_URL}/repository/${NEXUS_REPOSITORY}/${GROUP_ID//./\/}/${ARTIFACT_ID}/${COMMIT_ID}/${ZIP_FILE_NAME}"
-    - pwd  # Print working directory
-    - find . -name "*.zip"  # Find ZIP files
-    - ls -l ${ZIP_FILE_NAME}  # Verify file existence
-    - curl -u wissem:3FqNnJ6XzF --upload-file "${ZIP_FILE_NAME}" "${UPLOAD_URL}"
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="upload to nexus succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Packaging succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="upload to nexus failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="Packaging failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-
-
+upload_artifact_to_nexus:
+  stage: upload
+  script:
+    - curl -u $NEXUS_CREDENTIALS_ID -T $ZIP_FILE_NAME "$NEXUS_URL/repository/$NEXUS_REPOSITORY/$GROUP_ID/$ARTIFACT_ID/$COMMIT_ID/$ZIP_FILE_NAME"
+  tags:
+    - nest-run
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="Upload to Nexus succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="Upload to Nexus failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
