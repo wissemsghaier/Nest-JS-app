@@ -1,4 +1,3 @@
-
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
@@ -67,6 +66,7 @@ install_dependencies:
   stage: install
   script:
     - npm install
+    - ls -la
   tags:
     - runner
   after_script:
