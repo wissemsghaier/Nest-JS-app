@@ -66,7 +66,7 @@ install_dependencies:
   stage: install
   script:
     - rm -rf node_modules
-    - npm update
+    - npm install
     - ls -la
   tags:
     - nest-run
