@@ -84,10 +84,7 @@ install_dependencies:
         
 build:
   stage: build
-  image: node:18 # Utilisez une image avec Node.js 18
   script:
-    - node --version    # Vérifiez la version de Node.js
-    - npm --version     # Vérifiez la version de npm
     - npm run build     # Exécutez le script de build
   tags:
     - runner
@@ -101,9 +98,7 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-  artifacts:
-    paths:
-      - dist/
+
 
       
 unit_tests:
