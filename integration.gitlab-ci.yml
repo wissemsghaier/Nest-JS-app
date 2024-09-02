@@ -1,4 +1,4 @@
-image: node:18  # Utiliser Node.js 18.x
+image: node:16  # Utiliser Node.js 18.x
 
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
@@ -19,6 +19,9 @@ before_script:
   - echo "Determining commit ID..."
   - export COMMIT_ID=$(git rev-parse --short HEAD)
   - export ZIP_FILE_NAME="${ARTIFACT_ID}-${COMMIT_ID}.zip"
+
+
+
 
 
 stages:
@@ -78,6 +81,8 @@ install_dependencies:
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
+
+        
 build:
   stage: build
   script:
