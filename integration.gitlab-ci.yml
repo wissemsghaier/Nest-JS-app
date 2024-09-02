@@ -1,6 +1,5 @@
+image: node:18  
 variables:
-  PHP_VERSION: "8.1.29"
-  COMPOSER_VERSION: "2.7.7"
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
   SONARQUBE_PROJECT_KEY: 'nest-js-project'
@@ -82,7 +81,7 @@ build:
   stage: build
   script:
     - npm install                  # Install project dependencies
-    - npm run build              # Run the build script
+    - npm run build                # Run the build script
   tags:
     - runner
   after_script:
@@ -95,6 +94,9 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+  artifacts:
+    paths:
+      - dist/
 
 
 
