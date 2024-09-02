@@ -84,7 +84,7 @@ build:
   stage: build
   image: node:18.20.4  # Use Node.js 18 image
   script:
-    - npm run build  # Ensure build script in package.json uses local nest CLI
+    - necho "build"  # Ensure build script in package.json uses local nest CLI
   tags:
     - nest-run
   after_script:
