@@ -66,7 +66,6 @@ install_dependencies:
   stage: install
   image: node:18.20.4  # Use Node.js 18 Docker image
   script:
-    - npm install -g npm@10.7.0
     - npm cache clean --force
     - npm config set fetch-retry-mintimeout 20000
     - npm config set fetch-retry-maxtimeout 120000
@@ -89,7 +88,9 @@ install_dependencies:
         
 build:
   stage: build
+  image: node:18.20.4  # Use Node.js 18 image
   script:
+    - npm install -g @nestjs/cli  # Install NestJS CLI globally
     - npm run build
   tags:
     - nest-run
@@ -103,8 +104,6 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
-
       
 unit_tests:
   stage: test
