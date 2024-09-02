@@ -81,9 +81,8 @@ install_dependencies:
 build:
   stage: build
   script:
-    - npm install -g @nestjs/cli   # Install NestJS CLI globally
     - npm install                  # Install project dependencies
-    - npm run build                # Run the build script
+    - npx nest build              # Run the build script
   tags:
     - runner
   after_script:
@@ -96,9 +95,6 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-  artifacts:
-    paths:
-      - dist/
 
 
 
