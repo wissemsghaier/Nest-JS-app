@@ -1,3 +1,5 @@
+image: node:18  # Utiliser Node.js 18.x
+
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
@@ -79,10 +81,10 @@ install_dependencies:
 build:
   stage: build
   script:
-    - node --version    # Check Node.js version
-    - npm --version     # Check npm version
+    - node --version    # Vérifiez la version de Node.js
+    - npm --version     # Vérifiez la version de npm
     - npm install
-    - npm run build     # Run the build script
+    - npm run build     # Exécutez le script de build
   tags:
     - runner
   after_script:
@@ -99,6 +101,7 @@ build:
     paths:
       - dist/
 
+      
 unit_tests:
   stage: test
   script:
