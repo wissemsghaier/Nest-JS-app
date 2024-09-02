@@ -65,9 +65,8 @@ checkout:
 install_dependencies:
   stage: install
   script:
-    - rm -rf node_modules
+    - cd src
     - npm install
-    - ls -la
   tags:
     - nest-run
   after_script:
