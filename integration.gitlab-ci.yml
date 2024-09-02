@@ -1,4 +1,4 @@
-image: node:16  # Utiliser Node.js 18.x
+
 
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
@@ -85,6 +85,10 @@ install_dependencies:
         
 build:
   stage: build
+  image: node:18 # Utilisez une image avec Node.js 18
+  before_script:
+    - nvm install 18
+    - nvm use 18
   script:
     - node --version    # Vérifiez la version de Node.js
     - npm --version     # Vérifiez la version de npm
