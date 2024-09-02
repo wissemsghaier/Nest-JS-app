@@ -1,4 +1,8 @@
 variables:
+  NODE_VERSION: "18"  # Adjust to the Node.js version you're using
+  NPM_VERSION: "9"    # Adjust to the npm version you're using
+
+
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
   SONARQUBE_PROJECT_KEY: 'nest-js-project'
@@ -12,6 +16,15 @@ variables:
   ZIP_FILE_NAME: '${ARTIFACT_ID}-${COMMIT_ID}.zip'
   COMMIT_ID: $(git rev-parse --short HEAD)
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
+
+default:
+  image: node:${NODE_VERSION}-alpine
+  before_script:
+    - npm install -g npm@${NPM_VERSION}
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
 
 before_script:
   - echo "Determining commit ID..."
@@ -60,17 +73,12 @@ checkout:
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-image: node:18
 
 install_dependencies:
   stage: install
   script:
-    - npm install
+    - npm ci  # Clean install dependencies based on package-lock.json
   artifacts:
-    expire_in: 1h
-    paths:
-      - node_modules/
-  cache:
     paths:
       - node_modules/
   tags:
@@ -88,15 +96,11 @@ install_dependencies:
         
 build:
   stage: build
-  variables:
-    BUILD_CONFIG: 'production'
-  dependencies:
-    - install_dependencies
   script:
-    - npm run build
+    - npm run build  # Run the build script defined in your package.json
   artifacts:
     paths:
-      - dist/
+      - dist/  # Adjust this if your build output goes elsewhere
   tags:
     - nest-run
   after_script:
@@ -114,10 +118,12 @@ build:
 unit_tests:
   stage: test
   script:
-    - npm test
+    - npm run test  # Run the test script defined in your package.json
+    - npm run test:e2e  # Optionally run end-to-end tests if defined
   artifacts:
-    reports:
-      junit: test-results.xml
+    when: always
+    paths:
+      - test-results/  # Adjust this path if you have test result outputs
   tags:
     - nest-run
   after_script:
