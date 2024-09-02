@@ -65,7 +65,8 @@ checkout:
 install_dependencies:
   stage: install
   script:
-    - cd src
+    - rm -rf node_modules
+    - rm package-lock.json
     - npm install
   tags:
     - nest-run
