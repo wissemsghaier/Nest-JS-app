@@ -66,11 +66,6 @@ install_dependencies:
   stage: install
   image: node:18.20.4  # Use Node.js 18 Docker image
   script:
-    - npm cache clean --force
-    - npm config set fetch-retry-mintimeout 20000
-    - npm config set fetch-retry-maxtimeout 120000
-    - rm -rf node_modules
-    - rm package-lock.json
     - npm install
   tags:
     - nest-run
