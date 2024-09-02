@@ -65,6 +65,9 @@ checkout:
 install_dependencies:
   stage: install
   script:
+    - npm cache clean --force
+    - npm config set fetch-retry-mintimeout 20000
+    - npm config set fetch-retry-maxtimeout 120000
     - rm -rf node_modules
     - rm package-lock.json
     - npm install
