@@ -67,6 +67,7 @@ install_dependencies:
   image: node:18.20.4  # Use Node.js 18 Docker image
   script:
     - npm install
+    - npm install -g @nestjs/cli  # Install NestJS CLI globally
   tags:
     - nest-run
   after_script:
@@ -79,13 +80,12 @@ install_dependencies:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
         
 build:
   stage: build
   image: node:18.20.4  # Use Node.js 18 image
   script:
-    - npm run build
+    - npm run build  # Ensure build script in package.json uses local nest CLI
   tags:
     - nest-run
   after_script:
@@ -98,6 +98,7 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
       
 unit_tests:
   stage: test
