@@ -86,7 +86,9 @@ install_dependencies:
 build:
   stage: build
   script:
-    - npm run build     # Exécutez le script de build
+    - nest --version     # Exécutez le script de build
+    - node --version
+    - npm --version 
   tags:
     - nest-run
   after_script:
