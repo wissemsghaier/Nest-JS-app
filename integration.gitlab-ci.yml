@@ -96,9 +96,9 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-    artifacts:
-      paths:
-        - dist/
+  artifacts:
+    paths:
+      - dist/
 
 
 
