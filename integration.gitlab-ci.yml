@@ -81,7 +81,7 @@ build:
   script:
     - node --version    # Check Node.js version
     - npm --version     # Check npm version
-    - npm run build     # Run the build script
+    - nest build     # Run the build script
   tags:
     - runner
   after_script:
