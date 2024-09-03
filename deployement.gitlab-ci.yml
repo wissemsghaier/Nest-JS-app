@@ -3,12 +3,12 @@ stages:
   - download
   - unzip
   - build_image
+  - publish_image
   - build_images_jmeter
   - run_container
   - run_test
-    # - publish_image
+  
   - cleanup
-
 
 variables:
 
@@ -139,27 +139,34 @@ unzip_artifact:
     - if: '$COMMIT_ID'
       when: always
 
-
-
-generate_image_tags:
-  stage: build
-  script:
-    - echo "Generating image tags..."
-    - echo "some-image-tag" > image_tag.txt
-    - echo "jmeter-image-tag" > img.txt
-  artifacts:
-    paths:
-      - image_tag.txt
-      - img.txt
-
 build_docker_image:
-  stage: build
+  stage: build_image
   tags:
     - shell
   script:
-    - echo "Building Docker image..."
-    - docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
-    - echo "Docker image built: ${IMAGE_NAME}:${COMMIT_ID}"
+    - |
+      echo "Building Docker image..."
+      echo "IMAGE_NAME: $IMAGE_NAME"
+      echo "COMMIT_ID: $COMMIT_ID"
+      
+      # Check if IMAGE_NAME is not empty
+      if [ -z "$IMAGE_NAME" ]; then
+        echo "Error: IMAGE_NAME is not set!"
+        exit 1
+      fi
+      
+      docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
+      echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="build_docker_image succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="build_docker_image failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
   artifacts:
     paths:
       - image_tag.txt
@@ -167,14 +174,55 @@ build_docker_image:
     - if: '$COMMIT_ID'
       when: always
 
+
+push_docker_image:
+  stage: publish_image
+  tags:
+    - shell
+  script:
+    - commitId=${COMMIT_ID}
+    - docker_url="54.38.185.102:10001/repository/${NEXUS_DOCKER_REPOSITORY}"  # Correct the variable assignment
+    - echo "Pushing Docker image to Nexus..."
+    - echo "3FqNnJ6XzF" | docker login 54.38.185.102:10001 --username wissem --password 3FqNnJ6XzF  # Use --password-stdin for security
+    - docker tag ${IMAGE_NAME}:${commitId} ${docker_url}/${IMAGE_NAME}:${commitId}
+    - docker push ${docker_url}/${IMAGE_NAME}:${commitId}
+    - echo "Docker image ${IMAGE_NAME}:${commitId} pushed to Nexus repository."
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="push_docker_image ro nexus  succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="push_docker_image ro nexus  failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  dependencies:
+    - build_docker_image
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+
+
 build_jmeter_image:
-  stage: build
+  stage: build_images_jmeter
   tags:
     - shell
   script:
     - echo "Building JMeter Docker image"
-    - JMETER_IMAGE_TAG=$(cat img.txt | tr -d '\r')
-    - docker build -t "${JMETER_IMAGE_TAG}" -f dockerfile .
+    - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="build_jmeter_image succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="build_jmeter_image failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
   artifacts:
     paths:
       - image_tag.txt
@@ -184,56 +232,25 @@ build_jmeter_image:
       when: always
 
 run_docker_container:
-  stage: deploy
+  stage: run_container
   tags:
     - shell
   script:
-    - echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
-    - CONTAINER_NAME="my-container-${COMMIT_ID}"
-    - HOST_PORT="3008"
-    - CONTAINER_PORT="3000"
-    - echo "Removing any existing container with name: ${CONTAINER_NAME}"
-    - docker rm -f "${CONTAINER_NAME}" || true
-    - echo "Running Docker container..."
-    - docker run -d --name "${CONTAINER_NAME}" -p "${HOST_PORT}:${CONTAINER_PORT}" "${IMAGE_NAME}:${COMMIT_ID}"
-  rules:
-    - if: '$COMMIT_ID'
-      when: always
-
-run_jmeter_tests:
-  stage: test
-  tags:
-    - shell
-  script:
-    - if [ ! -f image_tag.txt ] || [ ! -f img.txt ]; then 
-        echo "Required files are missing!"
-        exit 1
-      fi
-    - IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
-    - APP_CONTAINER_NAME="my-container-${IMAGE_TAG}"
-    - JMETER_IMAGE_NAME=$(cat img.txt | tr -d '\r')
-    - JMETER_RESULTS_DIR="$CI_PROJECT_DIR/jmeter-results"
     - |
-      function cleanup {
-        echo "Cleaning up application container..."
-        if [ "$(docker ps -q -f name=$APP_CONTAINER_NAME)" ]; then
-          docker stop $APP_CONTAINER_NAME
-        fi
-        docker rm -f $APP_CONTAINER_NAME
-        rm -rf $JMETER_RESULTS_DIR
-      }
-      trap cleanup EXIT
-    - echo "Running JMeter tests..."
-    - docker run --rm --link $APP_CONTAINER_NAME:app -v $CI_PROJECT_DIR:$CI_PROJECT_DIR -w $CI_PROJECT_DIR $JMETER_IMAGE_NAME -n -t $JMETER_TEST_FILE -l $JMETER_RESULTS_DIR/results.jtl
-  artifacts:
-    paths:
-      - jmeter-results
+      echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
+      CONTAINER_NAME="my-container-${COMMIT_ID}"
+      HOST_PORT="3008"
+      CONTAINER_PORT="3000"
+      echo "Removing any existing container with name: ${CONTAINER_NAME}"
+      docker rm -f ${CONTAINER_NAME} || true
+      echo "Running Docker container..."
+      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="run_jmeter_tests succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="run_docker_container succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="run_jmeter_tests failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="run_docker_container failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
@@ -242,40 +259,63 @@ run_jmeter_tests:
     - if: '$COMMIT_ID'
       when: always
 
-
-
-
-# push_docker_image:
-#   stage: publish_image
+# run_jmeter_tests:
+#   stage: run_test
 #   tags:
 #     - shell
 #   script:
-#     - commitId=${COMMIT_ID}
-#     - docker_url="54.38.185.102:10001/repository/${NEXUS_DOCKER_REPOSITORY}"  # Correct the variable assignment
-#     - echo "Pushing Docker image to Nexus..."
-#     - echo "3FqNnJ6XzF" | docker login 54.38.185.102:10001 --username wissem --password 3FqNnJ6XzF  # Use --password-stdin for security
-#     - docker tag ${IMAGE_NAME}:${commitId} ${docker_url}/${IMAGE_NAME}:${commitId}
-#     - docker push ${docker_url}/${IMAGE_NAME}:${commitId}
-#     - echo "Docker image ${IMAGE_NAME}:${commitId} pushed to Nexus repository."
+#     - |
+#       if [ ! -f image_tag.txt ] || [ ! -f img.txt ]; then 
+#         echo "Required files are missing!" 
+#         exit 1 
+#       fi
+#       IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
+#       APP_CONTAINER_NAME="my-container-${IMAGE_TAG}"
+#       JMETER_IMAGE_NAME=$(cat img.txt | tr -d '\r')
+#       JMETER_RESULTS_DIR="$CI_PROJECT_DIR/jmeter-results"
+      
+#       # Clean up function for the application container
+#       function cleanup {
+#         echo "Cleaning up application container..."
+#         if [ "$(docker ps -q -f name=$APP_CONTAINER_NAME)" ]; then
+#           docker stop $APP_CONTAINER_NAME >/dev/null
+#           docker rm $APP_CONTAINER_NAME >/dev/null
+#         fi
+#         echo "Application container $APP_CONTAINER_NAME has been removed."
+#       }
+#       trap cleanup EXIT
+
+#       if [ ! -d "$JMETER_RESULTS_DIR" ]; then
+#         mkdir -p "$JMETER_RESULTS_DIR"
+#       fi
+
+#       # Run JMeter tests
+#       docker run --rm \
+#         --link $APP_CONTAINER_NAME:my-app \
+#         -v "$JMETER_RESULTS_DIR:/tests/results" \
+#         $JMETER_IMAGE_NAME \
+#         -n -t /tests/test_plan.jmx -l /tests/results/results.jtl -e -o /tests/results \
+#         -Jhostname=my-app -Jport=3005
+
+#       echo "JMeter tests completed and results are saved to $JMETER_RESULTS_DIR"
+#       echo "Publishing JMeter reports..."
+#       echo "JMeter reports published successfully."
 #   after_script:
 #     - |
 #       if [ $? -eq 0 ]; then
-#         SLACK_MESSAGE="push_docker_image ro nexus  succeeded in pipeline $CI_PIPELINE_ID"
+#         SLACK_MESSAGE="run_jmeter_tests succeeded in pipeline $CI_PIPELINE_ID"
 #       else
-#         SLACK_MESSAGE="push_docker_image ro nexus  failed in pipeline $CI_PIPELINE_ID"
+#         SLACK_MESSAGE="run_jmeter_tests failed in pipeline $CI_PIPELINE_ID"
 #       fi
 #       curl -X POST -H 'Content-type: application/json' \
 #         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
 #         $SLACK_WEBHOOK_URL
-
-#   dependencies:
-#     - build_docker_image
+#   artifacts:
+#     paths:
+#       - jmeter-results/
 #   rules:
 #     - if: '$COMMIT_ID'
 #       when: always
-
-
-
 
 
 cleanup_docker_container:
@@ -302,5 +342,4 @@ cleanup_docker_container:
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
