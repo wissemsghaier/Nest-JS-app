@@ -71,7 +71,7 @@ install_dependencies:
 build:
   stage: build
   script:
-    - npx nest build  # Run the build script using npx
+    - ./node_modules/.bin/nest build  # Explicitly run the Nest CLI
   tags:
     - nest-run
   after_script:
@@ -84,6 +84,7 @@ build:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
 
 
 unit_tests:
