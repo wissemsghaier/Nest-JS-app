@@ -151,6 +151,17 @@ generate_image_tags:
       - image_tag.txt
       - img.txt
 
+generate_image_tags:
+  stage: build
+  script:
+    - echo "Generating image tags..."
+    - echo "some-image-tag" > image_tag.txt
+    - echo "jmeter-image-tag" > img.txt
+  artifacts:
+    paths:
+      - image_tag.txt
+      - img.txt
+
 build_docker_image:
   stage: build
   tags:
@@ -199,15 +210,14 @@ run_docker_container:
   tags:
     - shell
   script:
-    - |
-      echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
-      CONTAINER_NAME="my-container-${COMMIT_ID}"
-      HOST_PORT="3008"
-      CONTAINER_PORT="3000"
-      echo "Removing any existing container with name: ${CONTAINER_NAME}"
-      docker rm -f ${CONTAINER_NAME} || true
-      echo "Running Docker container..."
-      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
+    - echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
+    - CONTAINER_NAME="my-container-${COMMIT_ID}"
+    - HOST_PORT="3008"
+    - CONTAINER_PORT="3000"
+    - echo "Removing any existing container with name: ${CONTAINER_NAME}"
+    - docker rm -f ${CONTAINER_NAME} || true
+    - echo "Running Docker container..."
+    - docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
   rules:
     - if: '$COMMIT_ID'
       when: always
@@ -257,7 +267,6 @@ run_jmeter_tests:
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
 
 
