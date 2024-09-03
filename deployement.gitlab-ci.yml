@@ -138,24 +138,6 @@ unzip_artifact:
     - if: '$COMMIT_ID'
       when: always
 
-generate_image_tags:
-  stage: build_image
-  tags:
-    - shell
-  script:
-    - echo "Generating image tags..."
-    - echo "1.0.0" > image_tag.txt   # Example Docker image tag
-    - echo "jmeter_image:latest" > img.txt   # Example JMeter Docker image name
-  artifacts:
-    paths:
-      - image_tag.txt
-      - img.txt
-  rules:
-    - if: '$COMMIT_ID'
-      when: always
-
-
-
 build_docker_image:
   stage: build_image
   tags:
@@ -184,14 +166,12 @@ build_docker_image:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
   artifacts:
     paths:
       - image_tag.txt
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
 build_jmeter_image:
   stage: build_images_jmeter
@@ -243,11 +223,9 @@ run_docker_container:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
 run_jmeter_tests:
   stage: run_test
