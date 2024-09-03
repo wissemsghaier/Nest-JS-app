@@ -179,7 +179,6 @@ build_jmeter_image:
     - shell
   script:
     - echo "Building JMeter Docker image"
-    - JMETER_IMAGE_TAG=$(cat img.txt | tr -d '\r')
     - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
   after_script:
     - |
