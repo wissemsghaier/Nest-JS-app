@@ -3,12 +3,14 @@ variables:
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
   SONARQUBE_PROJECT_KEY: 'nest-project'
   SONARQUBE_PROJECT_NAME: 'nest-project'
+
   NEXUS_CREDENTIALS_ID: "nexus-jenkins"
   NEXUS_URL: "https://nexus.u-cloudsolutions.xyz"
   NEXUS_REPOSITORY: "student-repository"
   GROUP_ID: "com.artificial.Nest-JS"
   ARTIFACT_ID: "artifact"
   ZIP_FILE_NAME: '${ARTIFACT_ID}-${COMMIT_ID}.zip'
+  COMMIT_ID: $(git rev-parse --short HEAD)
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
 
 
@@ -60,9 +62,9 @@ install_dependencies:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="Install dependencies succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="install_dependencies succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="Install dependencies failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="install_dependencies failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
@@ -78,9 +80,9 @@ build:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="Build succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="build succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="Build failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="build failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
@@ -100,9 +102,9 @@ unit_tests:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="Unit tests succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="unit_tests succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="Unit tests failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="unit_tests failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
@@ -118,14 +120,14 @@ quality:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="quality succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="quality  succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="quality failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="quality  failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-  
+
 
 
 quality_gate:
@@ -158,6 +160,7 @@ quality_gate:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
 
 
 
@@ -207,9 +210,9 @@ upload:
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="upload to nexus succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="upload succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="upload to nexus failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="upload failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
