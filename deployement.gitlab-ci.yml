@@ -154,6 +154,8 @@ generate_image_tags:
     - if: '$COMMIT_ID'
       when: always
 
+
+
 build_docker_image:
   stage: build_image
   tags:
@@ -219,15 +221,14 @@ run_docker_container:
   script:
     - |
       IMAGE_NAME=$(cat image_tag.txt | tr -d '\r')
-      COMMIT_ID=$(cat image_tag.txt | tr -d '\r')
-      echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
-      CONTAINER_NAME="my-container-${COMMIT_ID}"
+      echo "Running Docker container from image: ${IMAGE_NAME}"
+      CONTAINER_NAME="my-container-${IMAGE_NAME}"
       HOST_PORT="3005"
       CONTAINER_PORT="3000"
       echo "Removing any existing container with name: ${CONTAINER_NAME}"
       docker rm -f ${CONTAINER_NAME} || true
       echo "Running Docker container..."
-      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
+      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}
   after_script:
     - |
       if [ $? -eq 0 ]; then
