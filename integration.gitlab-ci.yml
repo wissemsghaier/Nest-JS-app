@@ -91,6 +91,9 @@ build:
 unit_tests:
   stage: test
   script:
+    - npm install
+    - npm run build
+
     - npm run test  # Run the test script defined in your package.json
   tags:
     - docker-node
