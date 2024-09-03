@@ -1,6 +1,4 @@
 variables:
-  NODE_VERSION: "18"
-  NPM_VERSION: "9"
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
   SONARQUBE_PROJECT_KEY: 'nest-js-project'
@@ -13,15 +11,7 @@ variables:
   ZIP_FILE_NAME: '${ARTIFACT_ID}-${COMMIT_ID}.zip'
   SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
 
-default:
-  image: node:${NODE_VERSION}-alpine
-  # before_script:
-  #   - npm install -g npm@${NPM_VERSION}
 
-cache:
-  key: ${CI_COMMIT_REF_SLUG}
-  paths:
-    - node_modules/
 
 stages:
   - checkout
@@ -63,10 +53,8 @@ checkout:
 install_dependencies:
   stage: install
   script:
-    - npm ci  # Clean install dependencies based on package-lock.json
-  artifacts:
-    paths:
-      - node_modules/
+    - rm -rf  node_modules
+    - npm install  # Clean install dependencies based on package-lock.json
   tags:
     - nest-run
   after_script:
@@ -84,9 +72,6 @@ build:
   stage: build
   script:
     - npm run build  # Run the build script defined in your package.json
-  artifacts:
-    paths:
-      - dist/  # Adjust this if your build output goes elsewhere
   tags:
     - nest-run
   after_script:
@@ -104,11 +89,6 @@ unit_tests:
   stage: test
   script:
     - npm run test  # Run the test script defined in your package.json
-    - npm run test:e2e  # Optionally run end-to-end tests if defined
-  artifacts:
-    when: always
-    paths:
-      - test-results/  # Adjust this path if you have test result outputs
   tags:
     - nest-run
   after_script:
