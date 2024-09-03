@@ -138,34 +138,32 @@ unzip_artifact:
     - if: '$COMMIT_ID'
       when: always
 
+generate_image_tags:
+  stage: build
+  script:
+    - echo "Generating image tags..."
+    - echo "some-image-tag" > image_tag.txt
+    - echo "jmeter-image-tag" > img.txt
+  artifacts:
+    paths:
+      - image_tag.txt
+      - img.txt
+
 build_docker_image:
-  stage: build_image
+  stage: build
   tags:
     - shell
   script:
+    - echo "Building Docker image..."
+    - echo "IMAGE_NAME: $IMAGE_NAME"
+    - echo "COMMIT_ID: $COMMIT_ID"
     - |
-      echo "Building Docker image..."
-      echo "IMAGE_NAME: $IMAGE_NAME"
-      echo "COMMIT_ID: $COMMIT_ID"
-      
-      # Check if IMAGE_NAME is not empty
       if [ -z "$IMAGE_NAME" ]; then
         echo "Error: IMAGE_NAME is not set!"
         exit 1
       fi
-      
-      docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
-      echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
-  after_script:
-    - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="build_docker_image succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="build_docker_image failed in pipeline $CI_PIPELINE_ID"
-      fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
-        $SLACK_WEBHOOK_URL
+    - docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
+    - echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
   artifacts:
     paths:
       - image_tag.txt
@@ -174,22 +172,18 @@ build_docker_image:
       when: always
 
 build_jmeter_image:
-  stage: build_images_jmeter
+  stage: build
   tags:
     - shell
   script:
     - echo "Building JMeter Docker image"
-    - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
-  after_script:
     - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="build_jmeter_image succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="build_jmeter_image failed in pipeline $CI_PIPELINE_ID"
+      if [ ! -f img.txt ]; then
+        echo "Error: img.txt file is missing!"
+        exit 1
       fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
-        $SLACK_WEBHOOK_URL
+    - JMETER_IMAGE_TAG=$(cat img.txt | tr -d '\r')
+    - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
   artifacts:
     paths:
       - image_tag.txt
@@ -199,7 +193,7 @@ build_jmeter_image:
       when: always
 
 run_docker_container:
-  stage: run_container
+  stage: deploy
   tags:
     - shell
   script:
@@ -212,22 +206,12 @@ run_docker_container:
       docker rm -f ${CONTAINER_NAME} || true
       echo "Running Docker container..."
       docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
-  after_script:
-    - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="run_docker_container succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="run_docker_container failed in pipeline $CI_PIPELINE_ID"
-      fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
-        $SLACK_WEBHOOK_URL
   rules:
     - if: '$COMMIT_ID'
       when: always
 
 run_jmeter_tests:
-  stage: run_test
+  stage: test
   tags:
     - shell
   script:
@@ -241,7 +225,6 @@ run_jmeter_tests:
       JMETER_IMAGE_NAME=$(cat img.txt | tr -d '\r')
       JMETER_RESULTS_DIR="$CI_PROJECT_DIR/jmeter-results"
       
-      # Clean up function for the application container
       function cleanup {
         echo "Cleaning up application container..."
         if [ "$(docker ps -q -f name=$APP_CONTAINER_NAME)" ]; then
@@ -256,7 +239,6 @@ run_jmeter_tests:
         mkdir -p "$JMETER_RESULTS_DIR"
       fi
 
-      # Run JMeter tests
       docker run --rm \
         --link $APP_CONTAINER_NAME:my-app \
         -v "$JMETER_RESULTS_DIR:/tests/results" \
@@ -267,23 +249,12 @@ run_jmeter_tests:
       echo "JMeter tests completed and results are saved to $JMETER_RESULTS_DIR"
       echo "Publishing JMeter reports..."
       echo "JMeter reports published successfully."
-  after_script:
-    - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="run_jmeter_tests succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="run_jmeter_tests failed in pipeline $CI_PIPELINE_ID"
-      fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
-        $SLACK_WEBHOOK_URL
   artifacts:
     paths:
       - jmeter-results/
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
 
 
