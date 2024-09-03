@@ -33,7 +33,7 @@ stages:
 checkout:
   stage: checkout
   tags:
-    - nest-run
+    - shell
   script:
     - echo "Checking out the repository"
     - git rev-parse --short HEAD > commit_hash.txt
@@ -56,7 +56,7 @@ install_dependencies:
     - rm -rf  node_modules
     - npm install  # Clean install dependencies based on package-lock.json
   tags:
-    - nest-run
+    - shell
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -71,9 +71,9 @@ install_dependencies:
 build:
   stage: build
   script:
-    - ./node_modules/.bin/nest build  # Explicitly run the Nest CLI
+    - npm run build  # Explicitly run the Nest CLI
   tags:
-    - nest-run
+    - shell
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -92,7 +92,7 @@ unit_tests:
   script:
     - npm run test  # Run the test script defined in your package.json
   tags:
-    - nest-run
+    - shell
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -113,7 +113,7 @@ code_quality:
         -Dsonar.host.url=$SONARQUBE_URL \
         -Dsonar.login=$SONARQUBE_TOKEN
   tags:
-    - nest-run
+    - sonar
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -133,7 +133,7 @@ quality_gate:
         -Dsonar.host.url=$SONARQUBE_URL \
         -Dsonar.login=$SONARQUBE_TOKEN
   tags:
-    - nest-run
+    - sonar
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -153,7 +153,7 @@ package_artifact:
     paths:
       - $ZIP_FILE_NAME
   tags:
-    - nest-run
+    - shell
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -170,7 +170,7 @@ upload_artifact_to_nexus:
   script:
     - curl -u $NEXUS_CREDENTIALS_ID -T $ZIP_FILE_NAME "$NEXUS_URL/repository/$NEXUS_REPOSITORY/$GROUP_ID/$ARTIFACT_ID/$COMMIT_ID/$ZIP_FILE_NAME"
   tags:
-    - nest-run
+    - shell
   after_script:
     - |
       if [ $? -eq 0 ]; then
