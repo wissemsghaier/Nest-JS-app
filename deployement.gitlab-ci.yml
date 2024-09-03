@@ -257,8 +257,6 @@ run_jmeter_tests:
     - if: '$COMMIT_ID'
       when: always
 
-
-
 # push_docker_image:
 #   stage: publish_image
 #   tags:
