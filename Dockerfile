@@ -7,11 +7,16 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --silent
 
 # Copy the rest of the application code
-COPY . .
+ADD . .
+
+
+# Remove node_modules if it exists and install dependencies
+RUN rm -rf node_modules 
+RUN  npm install 
+
+
 
 # Build the NestJS application
 RUN npm run build
@@ -21,4 +26,6 @@ EXPOSE 3000
 
 # Define the command to run the application
 CMD ["npm", "run", "start:prod"]
+
+
 
