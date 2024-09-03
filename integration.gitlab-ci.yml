@@ -9,7 +9,7 @@ variables:
   GROUP_ID: "com.artificial.Nest-JS"
   ARTIFACT_ID: "artifact"
   ZIP_FILE_NAME: '${ARTIFACT_ID}-${COMMIT_ID}.zip'
-  SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
+  SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
 
 
 
@@ -161,39 +161,57 @@ quality_gate:
 
 
 
-package_artifact:
+package:
   stage: package
-  script:
-    - zip -r $ZIP_FILE_NAME dist/
-  artifacts:
-    paths:
-      - $ZIP_FILE_NAME
   tags:
     - shell
+  script:
+    - echo "Cleaning up old ZIP files..."
+    - rm -f artifact-*.zip
+    - echo "Packaging project..."
+    - COMMIT_ID=$(git rev-parse --short HEAD)
+    - ZIP_FILE_NAME="artifact-${COMMIT_ID}.zip"
+    - echo "Packaging project as ${ZIP_FILE_NAME}..."
+    - zip -r ${ZIP_FILE_NAME} .
+    - ls -l ${ZIP_FILE_NAME}
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="Packaging succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="package succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="Packaging failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="package failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
 
-upload_artifact_to_nexus:
+  artifacts:
+    paths:
+      - artifact-*.zip
+
+
+upload:
   stage: upload
-  script:
-    - curl -u $NEXUS_CREDENTIALS_ID -T $ZIP_FILE_NAME "$NEXUS_URL/repository/$NEXUS_REPOSITORY/$GROUP_ID/$ARTIFACT_ID/$COMMIT_ID/$ZIP_FILE_NAME"
   tags:
     - shell
+  script:
+    - echo "Determining commit ID..."
+    - COMMIT_ID=$(git rev-parse --short HEAD)
+    - ZIP_FILE_NAME="artifact-${COMMIT_ID}.zip"
+    - echo "Uploading ${ZIP_FILE_NAME} to Nexus..."
+    - UPLOAD_URL="${NEXUS_URL}/repository/${NEXUS_REPOSITORY}/${GROUP_ID//./\/}/${ARTIFACT_ID}/${COMMIT_ID}/${ZIP_FILE_NAME}"
+    - pwd  # Print working directory
+    - find . -name "*.zip"  # Find ZIP files
+    - ls -l ${ZIP_FILE_NAME}  # Verify file existence
+    - curl -u wissem:3FqNnJ6XzF --upload-file "${ZIP_FILE_NAME}" "${UPLOAD_URL}"
   after_script:
     - |
       if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="Upload to Nexus succeeded in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="upload to nexus succeeded in pipeline $CI_PIPELINE_ID"
       else
-        SLACK_MESSAGE="Upload to Nexus failed in pipeline $CI_PIPELINE_ID"
+        SLACK_MESSAGE="upload to nexus failed in pipeline $CI_PIPELINE_ID"
       fi
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
