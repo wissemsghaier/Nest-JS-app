@@ -140,6 +140,8 @@ unzip_artifact:
 
 generate_image_tags:
   stage: build
+  tags:
+    - shell
   script:
     - echo "Generating image tags..."
     - echo "some-image-tag" > image_tag.txt
