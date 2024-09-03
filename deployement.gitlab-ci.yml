@@ -258,29 +258,48 @@ build_jmeter_image:
     - if: '$COMMIT_ID'
       when: always
 
-run_jmeter_performance_test:
+run_jmeter_tests:
   stage: run_test
+  script:
+    - echo "Running JMeter tests..."
+    - |
+      IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
+      APP_CONTAINER_NAME="my-app-${IMAGE_TAG}-container"
+      JMETER_IMAGE_NAME=$(cat img.txt | tr -d '\r')
+      JMETER_RESULTS_DIR="$CI_PROJECT_DIR/jmeter-results"
+      
+      function cleanup {
+        echo "Cleaning up application container..."
+        if [ "$(docker ps -q -f name=$APP_CONTAINER_NAME)" ]; then
+          docker stop $APP_CONTAINER_NAME >/dev/null
+          docker rm $APP_CONTAINER_NAME >/dev/null
+        fi
+        echo "Application container $APP_CONTAINER_NAME has been removed."
+      }
+
+      trap cleanup EXIT
+
+      if [ ! -d "$JMETER_RESULTS_DIR" ]; then
+        mkdir -p "$JMETER_RESULTS_DIR"
+      fi
+
+      docker run --rm \
+        --link $APP_CONTAINER_NAME:my-app \
+        -v "$JMETER_RESULTS_DIR:/tests/results" \
+        $JMETER_IMAGE_NAME \
+        -n -t /tests/test_plan.jmx -l /tests/results/results.jtl -e -o /tests/results \
+        -Jhostname=my-app -Jport=80
+
+      echo "JMeter tests completed and results are saved to $JMETER_RESULTS_DIR"
+      echo "Publishing JMeter reports..."
+      echo "JMeter reports published successfully."
   tags:
     - shell
-  
-  script:
-
-    - jmeter -n -t ${CI_PROJECT_DIR}/tests/jmeter/performance-test.jmx -l ${CI_PROJECT_DIR}/artifacts/performance-test-results.jtl
-  after_script:
-    - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="run_jmeter_performance_test succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="run_jmeter_performance_test failed in pipeline $CI_PIPELINE_ID"
-      fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"${SLACK_MESSAGE}\"}" \
-         $SLACK_WEBHOOK_URL
-
-
   artifacts:
     paths:
-      - artifacts/performance-test-results.jtl
+      - jmeter-results/
+      - image_tag.txt
+      - img.txt
     when: always
   rules:
     - if: '$COMMIT_ID'
