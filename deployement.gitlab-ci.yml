@@ -159,7 +159,7 @@ build_docker_image:
   script:
     - echo "Building Docker image..."
     - docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
-    - echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
+    - echo "Docker image built: ${IMAGE_NAME}:${COMMIT_ID}"
   artifacts:
     paths:
       - image_tag.txt
@@ -174,7 +174,7 @@ build_jmeter_image:
   script:
     - echo "Building JMeter Docker image"
     - JMETER_IMAGE_TAG=$(cat img.txt | tr -d '\r')
-    - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
+    - docker build -t "${JMETER_IMAGE_TAG}" -f dockerfile .
   artifacts:
     paths:
       - image_tag.txt
@@ -193,9 +193,9 @@ run_docker_container:
     - HOST_PORT="3008"
     - CONTAINER_PORT="3000"
     - echo "Removing any existing container with name: ${CONTAINER_NAME}"
-    - docker rm -f ${CONTAINER_NAME} || true
+    - docker rm -f "${CONTAINER_NAME}" || true
     - echo "Running Docker container..."
-    - docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
+    - docker run -d --name "${CONTAINER_NAME}" -p "${HOST_PORT}:${CONTAINER_PORT}" "${IMAGE_NAME}:${COMMIT_ID}"
   rules:
     - if: '$COMMIT_ID'
       when: always
@@ -206,8 +206,8 @@ run_jmeter_tests:
     - shell
   script:
     - if [ ! -f image_tag.txt ] || [ ! -f img.txt ]; then 
-        echo "Required files are missing!";
-        exit 1;
+        echo "Required files are missing!"
+        exit 1
       fi
     - IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
     - APP_CONTAINER_NAME="my-container-${IMAGE_TAG}"
@@ -241,7 +241,6 @@ run_jmeter_tests:
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
 
 
