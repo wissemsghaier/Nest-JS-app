@@ -178,7 +178,7 @@ build_docker_image:
 push_docker_image:
   stage: publish_image
   tags:
-    - runner
+    - shell
   script:
     - commitId=${COMMIT_ID}
     - docker_url="54.38.185.102:10001/repository/${NEXUS_DOCKER_REPOSITORY}"  # Correct the variable assignment
