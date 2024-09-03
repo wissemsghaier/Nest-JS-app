@@ -261,7 +261,7 @@ build_jmeter_image:
 run_jmeter_performance_test:
   stage: run_test
   tags:
-    - jmeter
+    - apache_jmeter
   
   script:
 
