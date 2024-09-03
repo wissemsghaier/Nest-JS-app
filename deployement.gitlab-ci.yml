@@ -157,8 +157,8 @@ build_docker_image:
     - shell
   script:
     - echo "Building Docker image..."
-    - echo "IMAGE_NAME: $IMAGE_NAME"
-    - echo "COMMIT_ID: $COMMIT_ID"
+    # - echo "IMAGE_NAME: $IMAGE_NAME"
+    # - echo "COMMIT_ID: $COMMIT_ID"
     - |
       if [ -z "$IMAGE_NAME" ]; then
         echo "Error: IMAGE_NAME is not set!"
