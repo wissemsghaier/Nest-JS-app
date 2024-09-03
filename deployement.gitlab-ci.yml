@@ -218,18 +218,16 @@ run_docker_container:
     - shell
   script:
     - |
-      IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
-      echo "Running Docker container from image: ${IMAGE_TAG}"
-      CONTAINER_NAME="my-app-${IMAGE_TAG}-container"
+      IMAGE_NAME=$(cat image_tag.txt | tr -d '\r')
+      COMMIT_ID=$(cat image_tag.txt | tr -d '\r')
+      echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
+      CONTAINER_NAME="my-container-${COMMIT_ID}"
       HOST_PORT="3005"
       CONTAINER_PORT="3000"
-      
-      # Remove any existing container
+      echo "Removing any existing container with name: ${CONTAINER_NAME}"
       docker rm -f ${CONTAINER_NAME} || true
-      
-      # Run the Docker container
-      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_TAG}
-      echo "Docker container ${CONTAINER_NAME} is running."
+      echo "Running Docker container..."
+      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -249,15 +247,17 @@ run_jmeter_tests:
   tags:
     - shell
   script:
-    - echo "Running JMeter tests..."
-    - if [ ! -f image_tag.txt ] || [ ! -f img.txt ]; then echo "Required files are missing!" && exit 1; fi
     - |
+      if [ ! -f image_tag.txt ] || [ ! -f img.txt ]; then 
+        echo "Required files are missing!" 
+        exit 1 
+      fi
       IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
-      APP_CONTAINER_NAME="my-app-${IMAGE_TAG}-container"
+      APP_CONTAINER_NAME="my-container-${IMAGE_TAG}"
       JMETER_IMAGE_NAME=$(cat img.txt | tr -d '\r')
       JMETER_RESULTS_DIR="$CI_PROJECT_DIR/jmeter-results"
       
-      # Function to clean up the application container
+      # Clean up function for the application container
       function cleanup {
         echo "Cleaning up application container..."
         if [ "$(docker ps -q -f name=$APP_CONTAINER_NAME)" ]; then
@@ -266,7 +266,6 @@ run_jmeter_tests:
         fi
         echo "Application container $APP_CONTAINER_NAME has been removed."
       }
-
       trap cleanup EXIT
 
       if [ ! -d "$JMETER_RESULTS_DIR" ]; then
@@ -279,7 +278,7 @@ run_jmeter_tests:
         -v "$JMETER_RESULTS_DIR:/tests/results" \
         $JMETER_IMAGE_NAME \
         -n -t /tests/test_plan.jmx -l /tests/results/results.jtl -e -o /tests/results \
-        -Jhostname=my-app -Jport=80
+        -Jhostname=my-app -Jport=3005
 
       echo "JMeter tests completed and results are saved to $JMETER_RESULTS_DIR"
       echo "Publishing JMeter reports..."
