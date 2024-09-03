@@ -16,9 +16,9 @@ variables:
   NEXUS_REPOSITORY: "student-repository"
   NEXUS_CREDENTIALS: 'wissem:3FqNnJ6XzF'
 
-  GROUP_ID: "com.artificial.lumen"
+  GROUP_ID: "com.artificial.Nest-JS"
   ARTIFACT_ID: "artifact"
-  IMAGE_NAME: 'my-docker-image'
+  IMAGE_NAME: 'my-app'
   
   ZIP_FILE_NAME: 'artifact-${COMMIT_ID}.zip'
   DOCKER_REGISTRY_URL: 'http://54.38.185.102:10001'
