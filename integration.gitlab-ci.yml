@@ -71,6 +71,7 @@ install_dependencies:
 build:
   stage: build
   script:
+    - npm install
     - npm run build  # Explicitly run the Nest CLI
   tags:
     - docker-node
