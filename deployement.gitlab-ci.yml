@@ -158,10 +158,6 @@ build_docker_image:
     - shell
   script:
     - echo "Building Docker image..."
-    - if [ -z "$IMAGE_NAME" ]; then
-        echo "Error: IMAGE_NAME is not set!";
-        exit 1;
-      fi
     - docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
     - echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
   artifacts:
@@ -177,10 +173,6 @@ build_jmeter_image:
     - shell
   script:
     - echo "Building JMeter Docker image"
-    - if [ ! -f img.txt ]; then
-        echo "Error: img.txt file is missing!";
-        exit 1;
-      fi
     - JMETER_IMAGE_TAG=$(cat img.txt | tr -d '\r')
     - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
   artifacts:
@@ -228,30 +220,27 @@ run_jmeter_tests:
           docker stop $APP_CONTAINER_NAME
         fi
         docker rm -f $APP_CONTAINER_NAME
-        echo "Cleaning up JMeter container..."
-        if [ "$(docker ps -q -f name=jmeter)" ]; then
-          docker stop jmeter
-        fi
-        docker rm -f jmeter
+        rm -rf $JMETER_RESULTS_DIR
       }
-    - trap cleanup EXIT
+      trap cleanup EXIT
     - echo "Running JMeter tests..."
-    - docker run -d --name jmeter -v $CI_PROJECT_DIR/jmeter-results:/results $JMETER_IMAGE_NAME
-    - docker exec jmeter sh -c "jmeter -n -t $JMETER_TEST_FILE -l /results/result.jtl"
-  after_script:
-    - if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="run_jmeter_tests succeeded in pipeline $CI_PIPELINE_ID";
-      else
-        SLACK_MESSAGE="run_jmeter_tests failed in pipeline $CI_PIPELINE_ID";
-      fi
-    - curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"$SLACK_MESSAGE\"}" $SLACK_WEBHOOK_URL
+    - docker run --rm --link $APP_CONTAINER_NAME:app -v $CI_PROJECT_DIR:$CI_PROJECT_DIR -w $CI_PROJECT_DIR $JMETER_IMAGE_NAME -n -t $JMETER_TEST_FILE -l $JMETER_RESULTS_DIR/results.jtl
   artifacts:
     paths:
-      - jmeter-results/result.jtl
+      - jmeter-results
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="run_jmeter_tests succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="run_jmeter_tests failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
   rules:
     - if: '$COMMIT_ID'
       when: always
-
 
 
 
