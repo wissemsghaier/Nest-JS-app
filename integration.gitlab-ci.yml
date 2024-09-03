@@ -58,8 +58,9 @@ install_dependencies:
     - rm -rf  node_modules
     - npm install  # Clean install dependencies based on package-lock.json
   tags:
-    - node
+    - docker-node
   after_script:
+    -  apk add --no-cache curl
     - |
       if [ $? -eq 0 ]; then
         SLACK_MESSAGE="install_dependencies succeeded in pipeline $CI_PIPELINE_ID"
@@ -76,8 +77,9 @@ build:
     - npm install
     - npm run build  # Explicitly run the Nest CLI
   tags:
-    - node
+    - docker-node
   after_script:
+    -  apk add --no-cache curl
     - |
       if [ $? -eq 0 ]; then
         SLACK_MESSAGE="build succeeded in pipeline $CI_PIPELINE_ID"
@@ -98,8 +100,9 @@ unit_tests:
 
     - npm run test  # Run the test script defined in your package.json
   tags:
-    - node
+    - docker-node
   after_script:
+    -  apk add --no-cache curl
     - |
       if [ $? -eq 0 ]; then
         SLACK_MESSAGE="unit_tests succeeded in pipeline $CI_PIPELINE_ID"
