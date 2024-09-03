@@ -1,8 +1,8 @@
 variables:
   SONARQUBE_URL: 'https://sonarqube.u-cloudsolutions.xyz'
   SONARQUBE_TOKEN: 'squ_b730e6c811798750f5442b5ec90950a58600c316'
-  SONARQUBE_PROJECT_KEY: 'nest-project'
-  SONARQUBE_PROJECT_NAME: 'nest-project'
+  SONARQUBE_PROJECT_KEY: 'my-nest-project'
+  SONARQUBE_PROJECT_NAME: 'my-nest-project'
 
   NEXUS_CREDENTIALS_ID: "nexus-jenkins"
   NEXUS_URL: "https://nexus.u-cloudsolutions.xyz"
