@@ -138,18 +138,7 @@ unzip_artifact:
     - if: '$COMMIT_ID'
       when: always
 
-generate_image_tags:
-  stage: build
-  tags:
-    - shell
-  script:
-    - echo "Generating image tags..."
-    - echo "some-image-tag" > image_tag.txt
-    - echo "jmeter-image-tag" > img.txt
-  artifacts:
-    paths:
-      - image_tag.txt
-      - img.txt
+
 
 generate_image_tags:
   stage: build
