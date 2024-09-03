@@ -56,7 +56,7 @@ install_dependencies:
     - rm -rf  node_modules
     - npm install  # Clean install dependencies based on package-lock.json
   tags:
-    - shell
+    - docker-node
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -73,7 +73,7 @@ build:
   script:
     - npm run build  # Explicitly run the Nest CLI
   tags:
-    - shell
+    - docker-node
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -92,7 +92,7 @@ unit_tests:
   script:
     - npm run test  # Run the test script defined in your package.json
   tags:
-    - shell
+    - docker-node
   after_script:
     - |
       if [ $? -eq 0 ]; then
