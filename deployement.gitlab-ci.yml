@@ -3,8 +3,9 @@ stages:
   - download
   - unzip
   - build_image
-  - publish_image
+  # - publish_image
   - run_container
+  - build_image
   - build_images_jmeter
   - run_test
   - cleanup
@@ -178,34 +179,34 @@ build_docker_image:
 
 
 
-push_docker_image:
-  stage: publish_image
-  tags:
-    - shell
-  script:
-    - commitId=${COMMIT_ID}
-    - docker_url="54.38.185.102:10001/repository/${NEXUS_DOCKER_REPOSITORY}"  # Correct the variable assignment
-    - echo "Pushing Docker image to Nexus..."
-    - echo "3FqNnJ6XzF" | docker login 54.38.185.102:10001 --username wissem --password 3FqNnJ6XzF  # Use --password-stdin for security
-    - docker tag ${IMAGE_NAME}:${commitId} ${docker_url}/${IMAGE_NAME}:${commitId}
-    - docker push ${docker_url}/${IMAGE_NAME}:${commitId}
-    - echo "Docker image ${IMAGE_NAME}:${commitId} pushed to Nexus repository."
-  after_script:
-    - |
-      if [ $? -eq 0 ]; then
-        SLACK_MESSAGE="push_docker_image ro nexus  succeeded in pipeline $CI_PIPELINE_ID"
-      else
-        SLACK_MESSAGE="push_docker_image ro nexus  failed in pipeline $CI_PIPELINE_ID"
-      fi
-      curl -X POST -H 'Content-type: application/json' \
-        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
-        $SLACK_WEBHOOK_URL
+# push_docker_image:
+#   stage: publish_image
+#   tags:
+#     - shell
+#   script:
+#     - commitId=${COMMIT_ID}
+#     - docker_url="54.38.185.102:10001/repository/${NEXUS_DOCKER_REPOSITORY}"  # Correct the variable assignment
+#     - echo "Pushing Docker image to Nexus..."
+#     - echo "3FqNnJ6XzF" | docker login 54.38.185.102:10001 --username wissem --password 3FqNnJ6XzF  # Use --password-stdin for security
+#     - docker tag ${IMAGE_NAME}:${commitId} ${docker_url}/${IMAGE_NAME}:${commitId}
+#     - docker push ${docker_url}/${IMAGE_NAME}:${commitId}
+#     - echo "Docker image ${IMAGE_NAME}:${commitId} pushed to Nexus repository."
+#   after_script:
+#     - |
+#       if [ $? -eq 0 ]; then
+#         SLACK_MESSAGE="push_docker_image ro nexus  succeeded in pipeline $CI_PIPELINE_ID"
+#       else
+#         SLACK_MESSAGE="push_docker_image ro nexus  failed in pipeline $CI_PIPELINE_ID"
+#       fi
+#       curl -X POST -H 'Content-type: application/json' \
+#         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+#         $SLACK_WEBHOOK_URL
 
-  dependencies:
-    - build_docker_image
-  rules:
-    - if: '$COMMIT_ID'
-      when: always
+#   dependencies:
+#     - build_docker_image
+#   rules:
+#     - if: '$COMMIT_ID'
+#       when: always
 
 run_docker_container:
   stage: run_container
@@ -236,12 +237,26 @@ run_docker_container:
     - if: '$COMMIT_ID'
       when: always
 
+generate_image_tags:
+  stage: build_image
+  tags:
+    - shell
+  script:
+    - echo "Generating image tags..."
+    - echo "1.0.0" > image_tag.txt   # Example Docker image tag
+    - echo "jmeter_image:latest" > img.txt   # Example JMeter Docker image name
+  artifacts:
+    paths:
+      - image_tag.txt
+      - img.txt
+
 build_jmeter_image:
   stage: build_images_jmeter
   tags:
     - shell
   script:
     - echo "Building JMeter Docker image"
+    - JMETER_IMAGE_TAG=$(cat img.txt | tr -d '\r')
     - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
   after_script:
     - |
@@ -253,15 +268,21 @@ build_jmeter_image:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
-
+  artifacts:
+    paths:
+      - image_tag.txt
+      - img.txt
   rules:
-    - if: '$COMMIT_ID'
+    - if: '$CI_COMMIT_SHA'
       when: always
 
 run_jmeter_tests:
   stage: run_test
+  tags:
+    - shell
   script:
     - echo "Running JMeter tests..."
+    - if [ ! -f image_tag.txt ] || [ ! -f img.txt ]; then echo "Required files are missing!" && exit 1; fi
     - |
       IMAGE_TAG=$(cat image_tag.txt | tr -d '\r')
       APP_CONTAINER_NAME="my-app-${IMAGE_TAG}-container"
@@ -293,17 +314,20 @@ run_jmeter_tests:
       echo "JMeter tests completed and results are saved to $JMETER_RESULTS_DIR"
       echo "Publishing JMeter reports..."
       echo "JMeter reports published successfully."
-  tags:
-    - shell
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="run_jmeter_tests succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="run_jmeter_tests failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
   artifacts:
     paths:
       - jmeter-results/
-      - image_tag.txt
-      - img.txt
-    when: always
-  rules:
-    - if: '$COMMIT_ID'
-      when: always
+  when: always
 
 
 
