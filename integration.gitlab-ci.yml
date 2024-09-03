@@ -59,9 +59,6 @@ install_dependencies:
     - npm install  # Clean install dependencies based on package-lock.json
   tags:
     - docker-node
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache curl
   after_script:
     - |
       if [ $? -eq 0 ]; then
