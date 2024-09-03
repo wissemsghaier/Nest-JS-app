@@ -1,0 +1,318 @@
+stages:
+  - check
+  - download
+  - unzip
+  - build_image
+  - publish_image
+  - run_container
+  - build_images_jmeter
+  - run_test
+  - cleanup
+
+variables:
+
+  NEXUS_URL: "https://nexus.u-cloudsolutions.xyz"
+  NEXUS_DOCKER_REPOSITORY: "new-nest-repository"
+  NEXUS_REPOSITORY: "student-repository"
+  NEXUS_CREDENTIALS: 'wissem:3FqNnJ6XzF'
+
+  GROUP_ID: "com.artificial.lumen"
+  ARTIFACT_ID: "artifact"
+  IMAGE_NAME: 'my-docker-image'
+  
+  ZIP_FILE_NAME: 'artifact-${COMMIT_ID}.zip'
+  DOCKER_REGISTRY_URL: 'http://54.38.185.102:10001'
+  JMETER_HOME: "/opt/apache-jmeter"
+  JMETER_TEST_FILE: "tests/jmeter/performance-test.jmx"
+  JMETER_TEST_FILE_TMP: "performance-test.jmx"
+  JMETER_IMAGE_TAG: "your-jmeter-image:latest"
+  SLACK_WEBHOOK_URL: 'https://hooks.slack.com/services/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'
+
+
+.slack_notification:
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+      $SLACK_WEBHOOK_URL
+
+check_artifact:
+  stage: check
+  tags:
+    - shell
+  script:
+    - echo "Checking if artifact exists in Nexus..."
+    - |
+      MAVEN_GROUP_ID_PATH=${GROUP_ID//./\/}
+      VERSION_TAG=${COMMIT_ID}
+      NEXUS_CHECK_URL="${NEXUS_URL}/repository/${NEXUS_REPOSITORY}/${MAVEN_GROUP_ID_PATH}/${ARTIFACT_ID}/${VERSION_TAG}/${ZIP_FILE_NAME}"
+      echo "Artifact URL: ${NEXUS_CHECK_URL}"  # Print the URL
+      RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -u "${NEXUS_CREDENTIALS}" "$NEXUS_CHECK_URL")
+      if [ "$RESPONSE_CODE" -eq "200" ]; then
+        echo "Artifact found in Nexus."
+      else
+        echo "Artifact not found. HTTP response code: $RESPONSE_CODE"
+        exit 1
+      fi
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="check_artifact succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="check_artifact failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+download_artifact:
+  stage: download
+  tags:
+    - shell
+  script:
+    - echo "Downloading artifact from Nexus..."
+    - |
+      mkdir -p artifacts
+      MAVEN_GROUP_ID_PATH=${GROUP_ID//./\/}
+      VERSION_TAG=${COMMIT_ID}
+      NEXUS_DOWNLOAD_URL="${NEXUS_URL}/repository/${NEXUS_REPOSITORY}/${MAVEN_GROUP_ID_PATH}/${ARTIFACT_ID}/${VERSION_TAG}/${ARTIFACT_ID}-${VERSION_TAG}.zip"
+      echo "Artifact URL: ${NEXUS_DOWNLOAD_URL}"
+      curl -v -u "${NEXUS_CREDENTIALS}" -o "artifacts/${ARTIFACT_ID}-${VERSION_TAG}.zip" "${NEXUS_DOWNLOAD_URL}"
+      echo "Downloaded files in artifacts directory:"
+      ls -l artifacts || echo "No files downloaded."
+      if [ ! -f "artifacts/${ARTIFACT_ID}-${VERSION_TAG}.zip" ]; then
+        echo "Error: Artifact not found after download."
+        exit 1
+      fi
+      echo "Artifact downloaded to artifacts/${ARTIFACT_ID}-${VERSION_TAG}.zip"
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="download_artifact succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="download_artifact failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  artifacts:
+    paths:
+      - artifacts/${ARTIFACT_ID}-${COMMIT_ID}.zip  # Persist the downloaded ZIP file to be used in the next stage
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+      
+unzip_artifact:
+  stage: unzip
+  tags:
+    - shell
+  script:
+    - echo "Unzipping artifact..."
+    - mkdir -p extracted
+    - |
+      if [ ! -f "artifacts/${ARTIFACT_ID}-${COMMIT_ID}.zip" ]; then
+        echo "Error: Artifact file not found, cannot unzip."
+        exit 1
+      fi
+    - unzip "artifacts/${ARTIFACT_ID}-${COMMIT_ID}.zip" -d extracted/
+    - echo "Artifact unzipped to extracted/"
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="unzip_artifact succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="unzip_artifact failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  dependencies:
+    - download_artifact  # Ensure the job depends on the previous stage's artifacts
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+
+
+build_docker_image:
+  stage: build_image
+  tags:
+    - shell
+  script:
+    - |
+      echo "Building Docker image..."
+      echo "IMAGE_NAME: $IMAGE_NAME"
+      echo "COMMIT_ID: $COMMIT_ID"
+      
+      # Check if IMAGE_NAME is not empty
+      if [ -z "$IMAGE_NAME" ]; then
+        echo "Error: IMAGE_NAME is not set!"
+        exit 1
+      fi
+      
+      docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
+      echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="build_docker_image succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="build_docker_image failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  artifacts:
+    paths:
+      - image_tag.txt
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+
+
+push_docker_image:
+  stage: publish_image
+  tags:
+    - shell
+  script:
+    - commitId=${COMMIT_ID}
+    - docker_url="54.38.185.102:10001/repository/${NEXUS_DOCKER_REPOSITORY}"  # Correct the variable assignment
+    - echo "Pushing Docker image to Nexus..."
+    - echo "3FqNnJ6XzF" | docker login 54.38.185.102:10001 --username wissem --password 3FqNnJ6XzF  # Use --password-stdin for security
+    - docker tag ${IMAGE_NAME}:${commitId} ${docker_url}/${IMAGE_NAME}:${commitId}
+    - docker push ${docker_url}/${IMAGE_NAME}:${commitId}
+    - echo "Docker image ${IMAGE_NAME}:${commitId} pushed to Nexus repository."
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="push_docker_image ro nexus  succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="push_docker_image ro nexus  failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  dependencies:
+    - build_docker_image
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+run_docker_container:
+  stage: run_container
+  tags:
+    - shell
+  script:
+    - |
+      echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
+      CONTAINER_NAME="my-container-${COMMIT_ID}"
+      HOST_PORT="3005"
+      CONTAINER_PORT="3000"
+      echo "Removing any existing container with name: ${CONTAINER_NAME}"
+      docker rm -f ${CONTAINER_NAME} || true
+      echo "Running Docker container..."
+      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="run_docker_container succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="run_docker_container failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+build_jmeter_image:
+  stage: build_images_jmeter
+  tags:
+    - shell
+  script:
+    - echo "Building JMeter Docker image"
+    - docker build -t ${JMETER_IMAGE_TAG} -f dockerfile .
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="build_jmeter_image succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="build_jmeter_image failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+# run_jmeter_performance_test:
+#   stage: run_test
+#   image: jmeter/jmeter:latest
+#   tags:
+#     - shell
+  
+#   script:
+
+#     - jmeter -n -t ${CI_PROJECT_DIR}/tests/jmeter/performance-test.jmx -l ${CI_PROJECT_DIR}/artifacts/performance-test-results.jtl
+#   after_script:
+#     - |
+#       if [ $? -eq 0 ]; then
+#         SLACK_MESSAGE="run_jmeter_performance_test succeeded in pipeline $CI_PIPELINE_ID"
+#       else
+#         SLACK_MESSAGE="run_jmeter_performance_test failed in pipeline $CI_PIPELINE_ID"
+#       fi
+#       curl -X POST -H 'Content-type: application/json' \
+#         --data "{\"text\":\"${SLACK_MESSAGE}\"}" \
+#         $SLACK_WEBHOOK_URL
+
+
+#   artifacts:
+#     paths:
+#       - artifacts/performance-test-results.jtl
+#     when: always
+#   rules:
+#     - if: '$COMMIT_ID'
+#       when: always
+
+
+
+
+cleanup_docker_container:
+  stage: cleanup
+  tags:
+    - shell
+  script:
+    - |
+      echo "Stopping and removing Docker container..."
+      CONTAINER_NAME="my-container-${COMMIT_ID}"
+      docker stop ${CONTAINER_NAME} || true
+      docker rm -f ${CONTAINER_NAME} || true
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="cleanup_docker_container succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="cleanup_docker_container failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"$SLACK_MESSAGE\"}" \
+        $SLACK_WEBHOOK_URL
+
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
+
+
