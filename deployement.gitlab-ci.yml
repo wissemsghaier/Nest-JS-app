@@ -258,34 +258,33 @@ build_jmeter_image:
     - if: '$COMMIT_ID'
       when: always
 
-# run_jmeter_performance_test:
-#   stage: run_test
-#   image: jmeter/jmeter:latest
-#   tags:
-#     - shell
+run_jmeter_performance_test:
+  stage: run_test
+  tags:
+    - jmeter
   
-#   script:
+  script:
 
-#     - jmeter -n -t ${CI_PROJECT_DIR}/tests/jmeter/performance-test.jmx -l ${CI_PROJECT_DIR}/artifacts/performance-test-results.jtl
-#   after_script:
-#     - |
-#       if [ $? -eq 0 ]; then
-#         SLACK_MESSAGE="run_jmeter_performance_test succeeded in pipeline $CI_PIPELINE_ID"
-#       else
-#         SLACK_MESSAGE="run_jmeter_performance_test failed in pipeline $CI_PIPELINE_ID"
-#       fi
-#       curl -X POST -H 'Content-type: application/json' \
-#         --data "{\"text\":\"${SLACK_MESSAGE}\"}" \
-#         $SLACK_WEBHOOK_URL
+    - jmeter -n -t ${CI_PROJECT_DIR}/tests/jmeter/performance-test.jmx -l ${CI_PROJECT_DIR}/artifacts/performance-test-results.jtl
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        SLACK_MESSAGE="run_jmeter_performance_test succeeded in pipeline $CI_PIPELINE_ID"
+      else
+        SLACK_MESSAGE="run_jmeter_performance_test failed in pipeline $CI_PIPELINE_ID"
+      fi
+      curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"${SLACK_MESSAGE}\"}" \
+         $SLACK_WEBHOOK_URL
 
 
-#   artifacts:
-#     paths:
-#       - artifacts/performance-test-results.jtl
-#     when: always
-#   rules:
-#     - if: '$COMMIT_ID'
-#       when: always
+  artifacts:
+    paths:
+      - artifacts/performance-test-results.jtl
+    when: always
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
 
 
 
