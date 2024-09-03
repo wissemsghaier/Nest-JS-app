@@ -1,2 +1,2 @@
 include:
-  - local: 'integration.gitlab-ci.yml'
+  - local: 'deployement.gitlab-ci.yml'
