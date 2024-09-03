@@ -163,14 +163,17 @@ build_docker_image:
   script:
     - |
       echo "Building Docker image..."
-      IMAGE_NAME="my-app-image"
-      COMMIT_ID=$(git rev-parse --short HEAD)
       echo "IMAGE_NAME: $IMAGE_NAME"
       echo "COMMIT_ID: $COMMIT_ID"
-
+      
+      # Check if IMAGE_NAME is not empty
+      if [ -z "$IMAGE_NAME" ]; then
+        echo "Error: IMAGE_NAME is not set!"
+        exit 1
+      fi
+      
       docker build -t "${IMAGE_NAME}:${COMMIT_ID}" .
-      echo "${IMAGE_NAME}:${COMMIT_ID}" > image_tag.txt
-      echo "Docker image built: ${IMAGE_NAME}:${COMMIT_ID}"
+      echo "Docker image built: $IMAGE_NAME:${COMMIT_ID}"
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -181,12 +184,14 @@ build_docker_image:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
   artifacts:
     paths:
       - image_tag.txt
   rules:
     - if: '$COMMIT_ID'
       when: always
+
 
 build_jmeter_image:
   stage: build_images_jmeter
@@ -220,15 +225,14 @@ run_docker_container:
     - shell
   script:
     - |
-      IMAGE_NAME=$(cat image_tag.txt | tr -d '\r')
-      echo "Running Docker container from image: ${IMAGE_NAME}"
-      CONTAINER_NAME="my-container-${IMAGE_NAME}"
-      HOST_PORT="3005"
+      echo "Running Docker container from image: ${IMAGE_NAME}:${COMMIT_ID}"
+      CONTAINER_NAME="my-container-${COMMIT_ID}"
+      HOST_PORT="3008"
       CONTAINER_PORT="3000"
       echo "Removing any existing container with name: ${CONTAINER_NAME}"
       docker rm -f ${CONTAINER_NAME} || true
       echo "Running Docker container..."
-      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}
+      docker run -d --name ${CONTAINER_NAME} -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:${COMMIT_ID}
   after_script:
     - |
       if [ $? -eq 0 ]; then
@@ -239,9 +243,11 @@ run_docker_container:
       curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"$SLACK_MESSAGE\"}" \
         $SLACK_WEBHOOK_URL
+
   rules:
     - if: '$COMMIT_ID'
       when: always
+
 
 run_jmeter_tests:
   stage: run_test
