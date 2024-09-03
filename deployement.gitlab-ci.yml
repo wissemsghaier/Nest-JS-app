@@ -249,6 +249,9 @@ generate_image_tags:
     paths:
       - image_tag.txt
       - img.txt
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
 
 build_jmeter_image:
   stage: build_images_jmeter
@@ -273,7 +276,7 @@ build_jmeter_image:
       - image_tag.txt
       - img.txt
   rules:
-    - if: '$CI_COMMIT_SHA'
+    - if: '$COMMIT_ID'
       when: always
 
 run_jmeter_tests:
@@ -327,7 +330,9 @@ run_jmeter_tests:
   artifacts:
     paths:
       - jmeter-results/
-  when: always
+  rules:
+    - if: '$COMMIT_ID'
+      when: always
 
 
 
